@@ -30,7 +30,7 @@ fun main() {
         8,8
         1,8
     """.trimIndent()
-    var input= """
+    var input = """
         97554,50097
         97554,51315
         98014,51315
@@ -530,67 +530,43 @@ fun main() {
     """.trimIndent()
 
     var corners = input.lines().map { line -> line.split(",").map { it.toLong() }.let { it[0] to it[1] } }
-    var edges = corners.zipWithNext()+ (corners.last() to  corners.first())
+    var edges = corners.zipWithNext() + (corners.last() to corners.first())
 
     var max = 0L
     for (i in 0..corners.lastIndex) {
         for (j in i + 1..corners.lastIndex) {
-            var rectangle = Pair(corners [i], corners[j]);
-            var area =square(corners[i], corners[j])
+            var rectangle = Pair(corners[i], corners[j]);
+            var area = square(corners[i], corners[j])
             if (area > max) {
-                if(ray(middle(rectangle), corners )){
-                    if(noEdgesInside(
-                        rectangle, edges)){
-                            max = square(corners[i], corners[j])
+                if (ray(middle(rectangle), corners)) {
+                    if (noEdgesInside(
+                            rectangle, edges
+                        )
+                    ) {
+                        max = square(corners[i], corners[j])
                     }
                 }
             }
-            }
-
-    }
-
-
-
-    /*
-    for (y in 0L..8L) {
-        for (x in 0L..13L) {
-            if (ray(Pair(x, y), corners)) {
-                print("X")
-            } else {
-                print(".")
-            }
         }
-        println()
     }
-
-     */
-
 
     println("Max: $max")
-    //part1: 4763040296
-    //part2: 4634026886
-    /**
-     * 0XX0000XX0
-     * 0XX0000XX0
-     * 0XXXXXXXX0
-     * 0XXXXXXXX0
-     *
-     */
-
-
 }
 
-fun noEdgesInside(rectangle : Pair<Pair<Long, Long>,Pair<Long, Long>>, edges: List<Pair<Pair<Long, Long>,Pair<Long, Long>>>): Boolean {
-    val (a,b) = rectangle
+fun noEdgesInside(
+    rectangle: Pair<Pair<Long, Long>, Pair<Long, Long>>,
+    edges: List<Pair<Pair<Long, Long>, Pair<Long, Long>>>
+): Boolean {
+    val (a, b) = rectangle
     val (ax, ay) = a
     val (bx, by) = b
-    var minx =  min(ax, bx)
-    var maxx =  max(ax, bx)
-    var miny =  min(ay,by)
-    var maxy =  max(ay,by)
+    var minx = min(ax, bx)
+    var maxx = max(ax, bx)
+    var miny = min(ay, by)
+    var maxy = max(ay, by)
 
-    for(edge in edges) {
-        val (c1, c2 ) = edge
+    for (edge in edges) {
+        val (c1, c2) = edge
         val (c1x, c1y) = c1
         val (c2x, c2y) = c2
 
@@ -599,17 +575,20 @@ fun noEdgesInside(rectangle : Pair<Pair<Long, Long>,Pair<Long, Long>>, edges: Li
         val miney = min(c1y, c2y)
         val maxey = max(c1y, c2y)
 
-        if(c1x == c2x && c1x in minx+1 ..<maxx){
-            if(max(miny, miney) < min(maxy, maxey )) return false
-        }else if (c1y == c2y && c1y in miny+1 ..<maxy) {
-            if(max(minx, minex) < min(maxx, maxex )) return false
+        if (c1x == c2x && c1x in minx + 1..<maxx) {
+            if (max(miny, miney) < min(maxy, maxey)) return false
+        } else if (c1y == c2y && c1y in miny + 1..<maxy) {
+            if (max(minx, minex) < min(maxx, maxex)) return false
         }
     }
     return true
 }
 
-fun middle(rectangle : Pair<Pair<Long, Long>,Pair<Long, Long>>): Pair<Long, Long>{
-    return Pair((rectangle.first.first + rectangle.second.first)/2, (rectangle.first.second + rectangle.second.second)/2 );
+fun middle(rectangle: Pair<Pair<Long, Long>, Pair<Long, Long>>): Pair<Long, Long> {
+    return Pair(
+        (rectangle.first.first + rectangle.second.first) / 2,
+        (rectangle.first.second + rectangle.second.second) / 2
+    );
 }
 
 fun ray(p: Pair<Long, Long>, corners: List<Pair<Long, Long>>): Boolean {
