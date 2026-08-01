@@ -1,11 +1,12 @@
 package de.winkler
 
+import java.lang.module.FindException
 import kotlin.math.max
 import kotlin.math.min
 
 fun main() {
 
-    var input = """
+    var input4 = """
         7,1
         11,1
         11,7
@@ -15,7 +16,21 @@ fun main() {
         2,3
         7,3
     """.trimIndent()
-    var input1= """
+    var input6 = """
+        1,1
+        2,1
+        2,7
+        4,7
+        4,4
+        5,4
+        5,7
+        7,7
+        7,1
+        8,1
+        8,8
+        1,8
+    """.trimIndent()
+    var input= """
         97554,50097
         97554,51315
         98014,51315
@@ -514,29 +529,32 @@ fun main() {
         97735,50097
     """.trimIndent()
 
+    var corners = input.lines().map { line -> line.split(",").map { it.toLong() }.let { it[0] to it[1] } }
+    var edges = corners.zipWithNext()+ (corners.last() to  corners.first())
 
-    var edges = input.lines().map { line -> line.split(",").map { it.toLong() }.let { it[0] to it[1] } }
     var max = 0L
-
-    for (i in 0..edges.lastIndex) {
-        for (j in i + 1..edges.lastIndex) {
-            var p1 = edges[i]
-            var p2 = edges[j]
-
-            if (ray(Pair(p1.first, p2.second), edges) &&
-                ray(Pair(p2.first, p1.second), edges)
-            ) {
-                if (square(edges[i], edges[j]) > max) {
-                    max = square(edges[i], edges[j])
+    for (i in 0..corners.lastIndex) {
+        for (j in i + 1..corners.lastIndex) {
+            var rectangle = Pair(corners [i], corners[j]);
+            var area =square(corners[i], corners[j])
+            if (area > max) {
+                if(ray(middle(rectangle), corners )){
+                    if(noEdgesInside(
+                        rectangle, edges)){
+                            max = square(corners[i], corners[j])
+                    }
                 }
             }
-        }
+            }
+
     }
 
 
+
+    /*
     for (y in 0L..8L) {
         for (x in 0L..13L) {
-            if (ray(Pair(x, y), edges)) {
+            if (ray(Pair(x, y), corners)) {
                 print("X")
             } else {
                 print(".")
@@ -545,18 +563,60 @@ fun main() {
         println()
     }
 
+     */
+
 
     println("Max: $max")
     //part1: 4763040296
     //part2: 4634026886
+    /**
+     * 0XX0000XX0
+     * 0XX0000XX0
+     * 0XXXXXXXX0
+     * 0XXXXXXXX0
+     *
+     */
+
 
 }
 
-fun ray(p: Pair<Long, Long>, edges: List<Pair<Long, Long>>): Boolean {
+fun noEdgesInside(rectangle : Pair<Pair<Long, Long>,Pair<Long, Long>>, edges: List<Pair<Pair<Long, Long>,Pair<Long, Long>>>): Boolean {
+    val (a,b) = rectangle
+    val (ax, ay) = a
+    val (bx, by) = b
+    var minx =  min(ax, bx)
+    var maxx =  max(ax, bx)
+    var miny =  min(ay,by)
+    var maxy =  max(ay,by)
 
-    for (i in 0..edges.lastIndex) {
-        var p1 = edges[i]
-        var p2 = edges[(i + 1) % edges.size]
+    for(edge in edges) {
+        val (c1, c2 ) = edge
+        val (c1x, c1y) = c1
+        val (c2x, c2y) = c2
+
+        val minex = min(c1x, c2x)
+        val maxex = max(c1x, c2x)
+        val miney = min(c1y, c2y)
+        val maxey = max(c1y, c2y)
+
+        if(c1x == c2x && c1x in minx+1 ..<maxx){
+            if(max(miny, miney) < min(maxy, maxey )) return false
+        }else if (c1y == c2y && c1y in miny+1 ..<maxy) {
+            if(max(minx, minex) < min(maxx, maxex )) return false
+        }
+    }
+    return true
+}
+
+fun middle(rectangle : Pair<Pair<Long, Long>,Pair<Long, Long>>): Pair<Long, Long>{
+    return Pair((rectangle.first.first + rectangle.second.first)/2, (rectangle.first.second + rectangle.second.second)/2 );
+}
+
+fun ray(p: Pair<Long, Long>, corners: List<Pair<Long, Long>>): Boolean {
+
+    for (i in 0..corners.lastIndex) {
+        var p1 = corners[i]
+        var p2 = corners[(i + 1) % corners.size]
         if (p1.first == p2.first && p.first == p1.first
             && p.second in min(p1.second, p2.second)..
             max(p1.second, p2.second)
@@ -570,16 +630,16 @@ fun ray(p: Pair<Long, Long>, edges: List<Pair<Long, Long>>): Boolean {
     }
 
     var count = 0
-    for (i in 0..edges.lastIndex) {
-        var p1 = edges[i]
-        var p2 = edges[(i + 1) % edges.size]
+    for (i in 0..corners.lastIndex) {
+        var p1 = corners[i]
+        var p2 = corners[(i + 1) % corners.size]
         if ((p1.first == p2.first && p.first > p1.first
                     && p.second in min(p1.second, p2.second)..max(p1.second, p2.second)
                     )
         ) {
             count++
             if (p.second == p1.second) {
-                var preprevious = edges[(i - 2 + edges.size) % edges.size]
+                var preprevious = corners[(i - 2 + corners.size) % corners.size]
                 if ((preprevious.second - p1.second) * (p1.second - p2.second) > 0) {
                     count++
                 }
