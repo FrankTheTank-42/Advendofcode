@@ -10,6 +10,7 @@ repositories {
 }
 
 dependencies {
+    implementation("com.google.ortools:ortools-java:9.15.6755")
     testImplementation(kotlin("test"))
 }
 
