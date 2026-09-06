@@ -11,7 +11,7 @@ var input = File("./src/main/kotlin/day12/input.txt").readLines()
 
 fun main() {
 
-    var lines = example
+    var lines = input
 
     var indexofFirstRegion = lines.indexOfFirst { it.contains('x') }
     var presents = lines.subList(0, indexofFirstRegion).windowed(5, 5)
@@ -30,13 +30,25 @@ fun main() {
         }.first()
     }
     var total = 0
+    var count1 = 0
+    var mino = 1000
+    var maxo = -10
+
     for (region in regions) {
         var d = Solver(presents, region)
-        if (d.rec()) total++
-         println("trycount: ${d.trycount}")
-        println("OpenPixel ${d.openpixel}")
-        println("Open9 ${d.open9}")
+        var start = d.openpixel-region.presents.indices.sumOf { region.presents[it] * (9-presents[it].count) }
+
+        var s =d.rec()
+        if (s) total++
+        if(!s && d.trycount != 1 )
+        println("solveable: $s trycount: ${d.trycount} ")
+        if (d.trycount != 1) count1++
+        if(start < mino && s) mino = start
+        if(start > maxo && !s) maxo = start
+        println("solveable: $s start $start end ${d.openpixel}  diff " + ( start-d.openpixel).toString())
     }
+
+    println("1s: $count1 mino: $mino maxo: $maxo")
     println(total)
 
 
@@ -46,44 +58,28 @@ fun main() {
 class Solver(
     var presents: List<Present>,
     var toBePlaced: IntArray,
-    private val area: Array<BooleanArray>,
-    private val states: MutableSet<Int>,
+    private val area: Array<IntArray>,
     var openpixel: Int,
-    var open9: Int,
-    var trycount:Int = 0,
-    var ocount: Int = 0
+    var trycount: Int = 0
 ) {
     constructor(presents: List<Present>, region: Region) : this(
         presents,
         region.presents.toIntArray(),
-        Array(region.y) { BooleanArray(region.x) },
-        mutableSetOf(),
+        Array(region.y) { IntArray(region.x) },
         (region.x * region.y) - region.presents.indices.sumOf { region.presents[it] * presents[it].count },
-        ((region.x / 3 * 3) * (region.y / 3 * 3)) - region.presents.toIntArray().sumOf { it * 9 },
-        0,0
     )
 
-    fun hash(area: Array<BooleanArray>, toBePlaced: IntArray): Int {
-        return Objects.hash(area.contentDeepHashCode(), toBePlaced.contentHashCode())
-    }
 
     fun rec(): Boolean {
         trycount++
-        if (trycount % 1000000 == 0) {
-            //println("trycount: $trycount ")
-        }
+
         if (toBePlaced.sum() == 0) {
             return true
         }
 
-        var hash = hash(area, toBePlaced)
-
-        if (states.contains(hash)) {
-            //  return false
+        if (openpixel < 2) {
+            return false
         }
-
-        states.add(hash)
-
 
         var f = toBePlaced.indexOfFirst { it != 0 }
         toBePlaced[f]--
@@ -91,12 +87,14 @@ class Solver(
         for (variant in p.variants) {
             for (y in 0..area.size - 3) {
                 for (x in 0..area[0].size - 3) {
-                    if (area.tryAdd(variant, x, y)) {
+                    var r = tryAdd(variant, x, y)
+                    if (r != Int.MIN_VALUE) {
+                        openpixel -= r
                         if (rec()) {
                             return true
-                        } else {
-                            area.subtract(variant, x, y)
                         }
+                        openpixel += subtract(variant, x, y)
+
                     }
                 }
             }
@@ -105,6 +103,47 @@ class Solver(
         return false
     }
 
+    fun tryAdd(part: Array<BooleanArray>, xstart: Int, ystart: Int): Int {
+
+        for ((y, element) in part.withIndex()) {
+            for (x in part[0].indices) {
+                if (area[y + ystart][x + xstart] < 0 && element[x]) {
+                    return Int.MIN_VALUE
+                }
+            }
+        }
+        var result = 0
+        for ((y, element) in part.withIndex()) {
+            for (x in part[0].indices) {
+                if (element[x]) {
+                    result -= area[y + ystart][x + xstart]
+                    area[y + ystart][x + xstart] = -area[y + ystart][x + xstart] - 1
+                } else if (area[y + ystart][x + xstart] >= 0) {
+                    result++
+                    area[y + ystart][x + xstart]++
+                }
+            }
+        }
+        return result
+    }
+
+
+    fun subtract(part: Array<BooleanArray>, xstart: Int, ystart: Int): Int {
+        var result = 0
+        for ((y, element) in part.withIndex()) {
+            for (x in part[0].indices) {
+                if (element[x]) {
+                    area[y + ystart][x + xstart] = -area[y + ystart][x + xstart] - 1
+                    result -= area[y + ystart][x + xstart]
+                } else if (area[y + ystart][x + xstart] >= 0) {
+                    area[y + ystart][x + xstart]--
+                    result++
+                }
+            }
+        }
+
+        return result
+    }
 }
 
 class Present(shape: List<List<Boolean>>) {
@@ -148,38 +187,6 @@ fun getArea(shape: List<List<Boolean>>): Array<BooleanArray> {
         }
     }
     return result
-}
-
-fun Array<BooleanArray>.tryAdd(part: Array<BooleanArray>, xstart: Int, ystart: Int): Boolean {
-    if (xstart + part[0].size > this[0].size || ystart + part.size > size) {
-        println("this:")
-        println(toString())
-        println("$xstart, $ystart")
-        throw RuntimeException()
-    }
-
-    for (y in 0 until part.size) {
-        for (x in 0 until part[0].size) {
-            if (this[y + ystart][x + xstart] && part[y][x]) {
-                return false
-            }
-        }
-    }
-
-    for (y in 0 until part.size) {
-        for (x in 0 until part[0].size) {
-            this[y + ystart][x + xstart] = this[y + ystart][x + xstart] || part[y][x]
-        }
-    }
-    return true
-}
-
-fun Array<BooleanArray>.subtract(part: Array<BooleanArray>, xstart: Int, ystart: Int) {
-    for ((y, element) in part.withIndex()) {
-        for (x in part[0].indices) {
-            this[y + ystart][x + xstart] = this[y + ystart][x + xstart] && !element[x]
-        }
-    }
 }
 
 fun Array<BooleanArray>.flipped(): Array<BooleanArray> {
